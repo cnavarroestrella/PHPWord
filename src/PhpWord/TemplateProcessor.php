@@ -65,6 +65,7 @@ class TemplateProcessor
     
     protected $_rels;
     protected $_types;
+    protected $_filesToDelete = array();
 
     /**
      * @since 0.12.0 Throws CreateTemporaryFileException and CopyFileException instead of Exception
@@ -417,6 +418,8 @@ class TemplateProcessor
             throw new Exception('Could not close zip file.');
         }
 
+        $this->deleteTempFiles();
+
         return $this->tempDocumentFilename;
     }
 
@@ -466,6 +469,29 @@ class TemplateProcessor
         );
 
         return $fixedDocumentPart;
+    }
+
+    public function setImageFromUrl($strKey, $url, $imgProps=array()) {
+        return $this->setImageFromBinary($strKey, file_get_contents($url), $imgProps);
+    }
+    public function setImageFromBase64($strKey, $b64, $imgProps=array()) {
+        return $this->setImageFromBinary($strKey, base64_decode($b64), $imgProps);
+    }
+    public function setImageFromBinary($strKey, $binary, $imgProps=array()) {
+        $nombre_fichero_tmp = tempnam(sys_get_temp_dir(), 'PHPWord');
+        file_put_contents($nombre_fichero_tmp, $binary);
+        
+        //https://stackoverflow.com/a/48565596/464165
+        $imgProps['src'] = $nombre_fichero_tmp;
+        $x = $this->setImg($strKey, $imgProps);
+        //unlink($nombre_fichero_tmp);
+        $this->_filesToDelete[] = $nombre_fichero_tmp;
+        return $x;
+    }
+    public function deleteTempFiles() {
+        foreach ($this->_filesToDelete as $file) {
+            unlink($file);
+        }
     }
 
     public function setImg( $strKey, $img){
