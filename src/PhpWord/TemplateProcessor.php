@@ -478,22 +478,28 @@ class TemplateProcessor
         return $this->setImageFromBinary($strKey, base64_decode($b64), $imgProps);
     }
     public function setImageFromBinary($strKey, $binary, $imgProps=array()) {
+
         $nombre_fichero_tmp = tempnam(sys_get_temp_dir(), 'PHPWord');
         file_put_contents($nombre_fichero_tmp, $binary);
         
-        //https://stackoverflow.com/a/48565596/464165
         $imgProps['src'] = $nombre_fichero_tmp;
-        $x = $this->setImg($strKey, $imgProps);
-        //unlink($nombre_fichero_tmp);
         $this->_filesToDelete[] = $nombre_fichero_tmp;
-        return $x;
+
+        //https://stackoverflow.com/a/48565596/464165
+        return $this->setImg($strKey, $imgProps);
     }
     public function deleteTempFiles() {
         foreach ($this->_filesToDelete as $file) {
             unlink($file);
         }
+        $this->_filesToDelete = array();
     }
 
+    // Expected $img: an array with the following:
+    // * `$img["src"] = "filename"`
+    // * Optional: Force different image extension with `$img["ext"] = "png"` (default jpg)
+    // * Optional: Force a size while ignoring aspect ratio with `$img["size"] = [32, 64]`
+    // * Optional: Set a target height and calculate witdh based on image proportions with `$img["swh"] = 32`
     public function setImg( $strKey, $img){
         $strKey = '${'.$strKey.'}';
         $relationTmpl = '<Relationship Id="RID" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/IMG"/>';
@@ -504,8 +510,7 @@ class TemplateProcessor
         $aSearch = array('RID', 'IMG');
         $aSearchType = array('IMG', 'EXT');
         $countrels=$this->_countRels++;
-        //I'm work for jpg files, if you are working with other images types -> Write conditions here
-        $imgExt = 'jpg';
+        $imgExt = isset($img["ext"]) ? $img["ext"] : 'jpg';
         $imgName = 'img' . $countrels . '.' . $imgExt;
 
         $this->zipClass->deleteName('word/media/' . $imgName);
@@ -558,10 +563,8 @@ class TemplateProcessor
 
 
         $this->tempDocumentMainPart=str_replace('<w:t>' . $strKey . '</w:t>', $toAddImg, $this->tempDocumentMainPart);
-        //print $this->tempDocumentMainPart;
 
-        if($this->_rels=="")
-        {
+        if($this->_rels=="") {
             $this->_rels=$this->zipClass->getFromName('word/_rels/document.xml.rels');
             $this->_types=$this->zipClass->getFromName('[Content_Types].xml');
         }
