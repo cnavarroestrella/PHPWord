@@ -478,13 +478,15 @@ class TemplateProcessor
         return $this->setImageFromBinary($strKey, base64_decode($b64), $imgProps);
     }
     public function setImageFromBinary($strKey, $binary, $imgProps=array()) {
-
         $nombre_fichero_tmp = tempnam(sys_get_temp_dir(), 'PHPWord');
         file_put_contents($nombre_fichero_tmp, $binary);
-        
-        $imgProps['src'] = $nombre_fichero_tmp;
         $this->_filesToDelete[] = $nombre_fichero_tmp;
 
+        return $this->setImageFromFile($strKey, $nombre_fichero_tmp, $imgProps);
+    }
+    public function setImageFromFile($strKey, $filepath, $imgProps=array()) {
+        $imgProps['src'] = $filepath;
+        
         //https://stackoverflow.com/a/48565596/464165
         return $this->setImg($strKey, $imgProps);
     }
